@@ -146,6 +146,9 @@ cc_library_shared {
             // enable experiments only in userdebug and eng builds
             cflags: ["-DENABLE_STAGEFRIGHT_EXPERIMENTS"],
         },
+        cant_reallocate_omx_buffers: {
+            cppflags: ["-DBOARD_CANT_REALLOCATE_OMX_BUFFERS"],
+        },
     },
 
     sanitize: {
