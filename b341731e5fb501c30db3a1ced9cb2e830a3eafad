@@ -34,6 +34,24 @@
       "revId": "b341731e5fb501c30db3a1ced9cb2e830a3eafad",
       "serverId": "d5e41ece-075f-43fb-b5a6-48951f3d7b1d",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a80dd14_47fe0e6d",
+        "filename": "media/libstagefright/CameraSource.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1120,
+      "author": {
+        "id": 1000037
+      },
+      "writtenOn": "2016-10-13T20:25:39Z",
+      "side": 1,
+      "message": "I\u0027m thinking that should be its own commit since this is a cherry-pick. Don\u0027t want two versions of this floating around.\n\nBut oh god, don\u0027t even get me started on those native_handle functions.\n\nNot only are their parameter checks inconsistent, they\u0027re wasting CPU cycles: \"native_handle_close\" is almost always followed by \"native_handle_delete\".\n\nThere should be a \"native_handle_close_and_delete\", where the parameters are verified similar to native_handle_delete, then it\u0027s close\u0027d and free\u0027d so\na) parameter checks only have to be done once, and\nb) only one jump to and from a function is needed\n\nIn fact I\u0027m going to submit that upstream. Maybe I\u0027m a little crazy, but little details like this add up...",
+      "parentUuid": "9a80dd14_87cd6689",
+      "revId": "b341731e5fb501c30db3a1ced9cb2e830a3eafad",
+      "serverId": "d5e41ece-075f-43fb-b5a6-48951f3d7b1d",
+      "unresolved": false
     }
   ]
 }
