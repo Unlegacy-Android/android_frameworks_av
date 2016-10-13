@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a80dd14_47b44ef2",
+        "filename": "media/libstagefright/CameraSource.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1120,
+      "author": {
+        "id": 1000037
+      },
+      "writtenOn": "2016-10-13T08:33:58Z",
+      "side": 1,
+      "message": "Perhaps this should be \"else if (handle !\u003d nullptr)\"?\n\nI think the callers of this method check that beforehand, but it\u0027s cheap insurance considering this is a last-resort situation.",
+      "revId": "b341731e5fb501c30db3a1ced9cb2e830a3eafad",
+      "serverId": "d5e41ece-075f-43fb-b5a6-48951f3d7b1d",
+      "unresolved": false
+    }
+  ]
+}
