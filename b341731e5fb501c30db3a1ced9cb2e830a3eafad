@@ -16,6 +16,24 @@
       "revId": "b341731e5fb501c30db3a1ced9cb2e830a3eafad",
       "serverId": "d5e41ece-075f-43fb-b5a6-48951f3d7b1d",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a80dd14_87cd6689",
+        "filename": "media/libstagefright/CameraSource.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1120,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2016-10-13T09:13:34Z",
+      "side": 1,
+      "message": "Sure. I was going to argue that native_handle_close checks this beforehand, but it\u0027s only native_handle_delete that checks if it\u0027s a nullptr.",
+      "parentUuid": "9a80dd14_47b44ef2",
+      "revId": "b341731e5fb501c30db3a1ced9cb2e830a3eafad",
+      "serverId": "d5e41ece-075f-43fb-b5a6-48951f3d7b1d",
+      "unresolved": false
     }
   ]
 }
