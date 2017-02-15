@@ -62,6 +62,7 @@ public:
                 const sp<SampleTable> &sampleTable,
                 Vector<SidxEntry> &sidx,
                 off64_t firstMoofOffset);
+    virtual status_t init();
 
     virtual status_t start(MetaData *params = NULL);
     virtual status_t stop();
@@ -2367,9 +2368,13 @@ sp<MediaSource> MPEG4Extractor::getTrack(size_t index) {
 
     ALOGV("getTrack called, pssh: %d", mPssh.size());
 
-    return new MPEG4Source(
+    sp<MPEG4Source> source = new MPEG4Source(
             track->meta, mDataSource, track->timescale, track->sampleTable,
             mSidxEntries, mMoofOffset);
+    if (source->init() != OK) {
+        return NULL;
+    }
+    return source;
 }
 
 // static
@@ -2546,6 +2551,7 @@ MPEG4Source::MPEG4Source(
       mSegments(sidx),
       mFirstMoofOffset(firstMoofOffset),
       mCurrentMoofOffset(firstMoofOffset),
+      mNextMoofOffset(-1),
       mCurrentTime(0),
       mCurrentSampleInfoAllocSize(0),
       mCurrentSampleInfoSizes(NULL),
@@ -2593,11 +2599,14 @@ MPEG4Source::MPEG4Source(
     }
 
     CHECK(format->findInt32(kKeyTrackID, &mTrackId));
+}
 
+status_t MPEG4Source::init() {
     if (mFirstMoofOffset != 0) {
         off64_t offset = mFirstMoofOffset;
-        parseChunk(&offset);
+        return parseChunk(&offset);
     }
+    return OK;
 }
 
 MPEG4Source::~MPEG4Source() {
@@ -2714,8 +2723,40 @@ status_t MPEG4Source::parseChunk(off64_t *offset) {
             }
             if (chunk_type == FOURCC('m', 'o', 'o', 'f')) {
                 // *offset points to the mdat box following this moof
-                parseChunk(offset); // doesn't actually parse it, just updates offset
-                mNextMoofOffset = *offset;
+
+                 while (true) {
+                     if (mDataSource->readAt(*offset, hdr, 8) < 8) {
+                         return ERROR_END_OF_STREAM;
+                     }
+                     chunk_size = ntohl(hdr[0]);
+                     chunk_type = ntohl(hdr[1]);
+                     if (chunk_size == 1) {
+                         // ISO/IEC 14496-12:2012, 8.8.4 Movie Fragment Box, moof is a Box
+                         // which is defined in 4.2 Object Structure.
+                         // When chunk_size==1, 8 bytes follows as "largesize".
+                         if (mDataSource->readAt(*offset + 8, &chunk_size, 8) < 8) {
+                             return ERROR_IO;
+                         }
+                         chunk_size = ntoh64(chunk_size);
+                         if (chunk_size < 16) {
+                             // The smallest valid chunk is 16 bytes long in this case.
+                             return ERROR_MALFORMED;
+                         }
+                     } else if (chunk_size == 0) {
+                         // next box extends to end of file.
+                     } else if (chunk_size < 8) {
+                         // The smallest valid chunk is 8 bytes long in this case.
+                         return ERROR_MALFORMED;
+                     }
+ 
+                     if (chunk_type == FOURCC('m', 'o', 'o', 'f')) {
+                         mNextMoofOffset = *offset;
+                         break;
+                     } else if (chunk_size == 0) {
+                         break;
+                     }
+                     *offset += chunk_size;
+                 }
             }
             break;
         }
@@ -3577,11 +3618,27 @@ status_t MPEG4Source::fragmentedRead(
                 totalTime += se->mDurationUs;
                 totalOffset += se->mSize;
             }
-        mCurrentMoofOffset = totalOffset;
-        mCurrentSamples.clear();
-        mCurrentSampleIndex = 0;
-        parseChunk(&totalOffset);
-        mCurrentTime = totalTime * mTimescale / 1000000ll;
+            mCurrentMoofOffset = totalOffset;
+            mNextMoofOffset = -1;
+            mCurrentSamples.clear();
+            mCurrentSampleIndex = 0;
+            status_t err = parseChunk(&totalOffset);
+            if (err != OK) {
+                return err;
+            }
+            mCurrentTime = totalTime * mTimescale / 1000000ll;
+         } else {
+             // without sidx boxes, we can only seek to 0
+             mCurrentMoofOffset = mFirstMoofOffset;
+             mNextMoofOffset = -1;
+             mCurrentSamples.clear();
+             mCurrentSampleIndex = 0;
+             off64_t tmp = mCurrentMoofOffset;
+             status_t err = parseChunk(&tmp);
+             if (err != OK) {
+                 return err;
+             }
+             mCurrentTime = 0;
         }
 
         if (mBuffer != NULL) {
@@ -3607,10 +3664,13 @@ status_t MPEG4Source::fragmentedRead(
             mCurrentMoofOffset = nextMoof;
             mCurrentSamples.clear();
             mCurrentSampleIndex = 0;
-            parseChunk(&nextMoof);
-                if (mCurrentSampleIndex >= mCurrentSamples.size()) {
-                    return ERROR_END_OF_STREAM;
-                }
+            status_t err = parseChunk(&nextMoof);
+            if (err != OK) {
+                return err;
+            }
+            if (mCurrentSampleIndex >= mCurrentSamples.size()) {
+                return ERROR_END_OF_STREAM;
+            }
         }
 
         const Sample *smpl = &mCurrentSamples[mCurrentSampleIndex];
