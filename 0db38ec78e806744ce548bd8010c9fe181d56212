@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "645ab0de_e539f6a2",
+        "filename": "media/libstagefright/Android.mk",
+        "patchSetId": 1
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1000114
+      },
+      "writtenOn": "2017-04-10T15:22:32Z",
+      "side": 1,
+      "message": "this should use $(TARGET_HAL_PATH)",
+      "revId": "0db38ec78e806744ce548bd8010c9fe181d56212",
+      "serverId": "d5e41ece-075f-43fb-b5a6-48951f3d7b1d",
+      "unresolved": false
+    }
+  ]
+}
